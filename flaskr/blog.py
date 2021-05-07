@@ -24,10 +24,13 @@ def index():
     if page_num is not None:
         page_num = int(page_num)
         if page_num == -1: # 이전 눌렀을 때
-            if prev_page > 0: # 0보다 큰 상태이므로 이전 페이지 빼 줘야 함
+            if prev_page > 2: # 0보다 큰 상태이므로 이전 페이지 빼 줘야 함
                 next_page = prev_page+1
                 prev_page -= 3
                 page_num = prev_page+1
+            else:
+                prev_page = 0
+                page_num = 1
         elif page_num == -999: # 다음 눌렀을 때
             if next_page + 3 <= page_cnt: # 다음 페이지 +3 해도 마지막 페이지 수보다 같거나 작을 때
                 prev_page = next_page - 1
@@ -39,12 +42,11 @@ def index():
                 page_num = prev_page+1
         posts = db_session.query(Posts.id, Posts.title, Posts.body, Posts.created, Posts.author_id, Users.username)\
             .filter(Users.id == Posts.author_id).order_by(Posts.created.desc()).offset((page_num-1)*5).limit(5).all()
-        posts = [dict(zip(post.keys(), post)) for post in posts]
         page_num = None
     else:
         prev_page = 0
         if prev_page + 3 > page_cnt:
-            next_page = page_cnt
+            next_page = page_cnt+1
         else:
             next_page = (prev_page + 1) + 3
         posts = db_session.query(Posts.id, Posts.title, Posts.body, Posts.created, Posts.author_id, Users.username)\
@@ -127,7 +129,6 @@ def update(id):
 @bp.route('/<int:id>/delete', methods=('POST',))
 @login_required
 def delete(id):
-    get_post(id)
     post = db_session.query(Posts).filter(Posts.id == id).first()
     db_session.delete(post)
     db_session.commit()
