@@ -1,16 +1,13 @@
 import functools
 from flask import (Blueprint, flash, g, redirect, render_template, request, session, url_for)
 from werkzeug.security import check_password_hash, generate_password_hash
-from flaskr.db import init_db
-from flaskr.db import db_session
 from flaskr.models import Users, Posts
-from dataclasses import dataclass, asdict
+from flaskr import db
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 @bp.route('/register', methods=('GET', 'POST'))
 def register():
-    print("레지스터 드렁옴")
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -21,13 +18,13 @@ def register():
         elif not password:
             error = 'Password is required'
         else:
-            result = db_session.query(Users).filter(Users.username == username).all()
+            result = db.session.query(Users).filter(Users.username == username).all()
             if result:
                 error = 'Error!!'
         if error is None:
             user_info = Users(username=username, password=generate_password_hash(password))
-            db_session.add(user_info)
-            db_session.commit()
+            db.session.add(user_info)
+            db.session.commit()
             return redirect(url_for('auth.login'))
 
         flash(error)
@@ -40,19 +37,20 @@ def login():
         username = request.form['username']
         password = request.form['password']
         error = None
-        user = db_session.query(Users).filter(Users.username == username).first()
+        user = db.session.query(Users).filter(Users.username == username).first()
+        print("**** user", user)
         if not user:
             error = 'Incorrect Username or Password'
         else:
             user = user.__dict__
             if not check_password_hash(user['password'], password):
                 error = 'Incorrect Username or Password'
-
+    
         if error is None:
             session.clear()
             session['user_id'] = user['id']
             return redirect(url_for('index'))
-
+        print(error)
         flash(error)
 
     return render_template('auth/login.html')
@@ -63,8 +61,8 @@ def load_logged_in_user():
     if user_id is None:
         g.user = None
     else:
-        tmp = db_session.query(Users).filter(Users.id == user_id).one()
-        g.user = tmp.__dict__
+        tmp_user = db.session.query(Users).filter(Users.id == user_id).first()
+        g.user = tmp_user.__dict__
 
 @bp.route('/logout')
 def logout():

@@ -3,12 +3,9 @@ from flask import (
 )
 from werkzeug.exceptions import abort
 from flaskr.auth import login_required
-
-from flaskr.db import init_db
-from flaskr.db import db_session
+from datetime import datetime
 from flaskr.models import Users, Posts
-from dataclasses import dataclass, asdict
-import datetime
+from flaskr import db
 
 bp = Blueprint('blog', __name__)
 
@@ -40,23 +37,24 @@ def index():
                 prev_page = next_page - 1
                 next_page = page_cnt+1
                 page_num = prev_page+1
-        posts = db_session.query(Posts.id, Posts.title, Posts.body, Posts.created, Posts.author_id, Users.username)\
-            .filter(Users.id == Posts.author_id).order_by(Posts.created.desc()).offset((page_num-1)*5).limit(5).all()
+
+        posts = db.session.query(Posts.id, Posts.title, Posts.body, Posts.created, Posts.author_id, Users.username)\
+            .filter(Users.id == Posts.author_id, Posts.deleted == None).order_by(Posts.created.desc()).offset((page_num-1)*5).limit(5).all()
         page_num = None
     else:
         prev_page = 0
         if prev_page + 3 > page_cnt:
-            next_page = page_cnt+1
+            next_page = page_cnt + 1
         else:
             next_page = (prev_page + 1) + 3
-        posts = db_session.query(Posts.id, Posts.title, Posts.body, Posts.created, Posts.author_id, Users.username)\
-            .filter(Users.id == Posts.author_id).order_by(Posts.created.desc()).limit(5).all()
-        posts = [dict(zip(post.keys(), post)) for post in posts]
+        posts = db.session.query(Posts.id, Posts.title, Posts.body, Posts.created, Posts.author_id, Users.username)\
+            .filter(Users.id == Posts.author_id, Posts.deleted == None).order_by(Posts.created.desc()).limit(5).all()
+    posts = [dict(zip(post.keys(), post)) for post in posts]
     return render_template('blog/index.html', posts=posts, page_cnt=page_cnt, page_start=prev_page+1, page_last=next_page, page_now=page_num)
 
 def pagination():
     global page_cnt
-    post_cnt = db_session.query(Posts).count()
+    post_cnt = db.session.query(Posts).filter(Posts.deleted == None).count()
 
     # 총 페이지 수 구하기
     if post_cnt % 5 == 0:
@@ -77,22 +75,19 @@ def create():
 
         if not title:
             error = 'Title is required.'
-        
-        if not body:
-            error = 'Body is required'
 
         if error is not None:
             flash(error)
         else:
-            new_post = Posts(title=title, body=body, author_id=g.user['id'] , created=datetime.datetime.now())
-            db_session.add(new_post)
-            db_session.commit()
+            new_post = Posts(title=title, body=body, author_id=g.user['id'] , created=datetime.now())
+            db.session.add(new_post)
+            db.session.commit()
             return redirect(url_for('blog.index'))
 
     return render_template('blog/create.html')
 
 def get_post(id, check_author=True):
-    post = db_session.query(Posts.id, Posts.title, Posts.body, Posts.created, Posts.author_id, Users.username)\
+    post = db.session.query(Posts.id, Posts.title, Posts.body, Posts.created, Posts.author_id, Users.username)\
         .filter(Users.id == Posts.author_id).filter(Posts.id == id).one()
     post = dict(zip(post.keys(), post))
     if post is None:
@@ -118,10 +113,10 @@ def update(id):
         if error is not None:
             flash(error)
         else:
-            post = db_session.query(Posts).filter(Posts.id == id).first()
+            post = db.session.query(Posts).filter(Posts.id == id).one()
             post.title = title
             post.body = body
-            db_session.commit()
+            db.session.commit()
             return redirect(url_for('blog.index'))
 
     return render_template('blog/update.html', post=post)
@@ -129,16 +124,7 @@ def update(id):
 @bp.route('/<int:id>/delete', methods=('POST',))
 @login_required
 def delete(id):
-    post = db_session.query(Posts).filter(Posts.id == id).first()
-    db_session.delete(post)
-    db_session.commit()
+    post = db.session.query(Posts).filter(Posts.id == id).one()
+    post.deleted = datetime.now()
+    db.session.commit()
     return redirect(url_for('blog.index'))
-
-@bp.route('/search', methods=('POST',))
-def search():
-    search_text = request.form.get('search_text')
-    search_text_format = "%{}%".format(search_text)
-    posts = db_session.query(Posts.id, Posts.title, Posts.body, Posts.created, Posts.author_id, Users.username)\
-            .filter(Users.id == Posts.author_id).filter(Posts.title.like(search_text_format)).all()
-    posts = posts = [dict(zip(post.keys(), post)) for post in posts]
-    return render_template('blog/search.html', posts=posts, search_text=search_text)
