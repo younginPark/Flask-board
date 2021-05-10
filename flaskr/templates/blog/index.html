@@ -8,7 +8,27 @@
 {% endblock %}
 
 {% block content %}
-  {% for post in posts %}
+  <div>
+    <table>
+      <tr>
+        <th>순번</th>
+        <th>제목</th>
+        <th>글쓴이</th>
+        <th>날짜</th>
+      </tr>
+      {% for post in posts %}
+        {% set ns = namespace(idx = loop.revindex, id_num = 0) %}
+        <tr>
+          {% set ns.id_num = post['id'] %}
+          <td>{{ns.idx}}</td>
+          <td><a href={{url_for('blog.show_body', id=ns.id_num )}} style="text-decoration:none">{{ post['title'] }}</a></td>
+          <td>{{ post['username'] }}</td>
+          <td>{{ post['created'].strftime('%Y-%m-%d') }}</td>
+        </tr>
+      {% endfor %}
+    </table>
+  </div>
+  <!-- {% for post in posts %}
     <div id="post-data">
       <article class="post">
         <header>
@@ -26,7 +46,7 @@
         <hr>
       {% endif %}
     </div>
-  {% endfor %}
+  {% endfor %} -->
   <nav aria-label="...">
     <ul class="pagination">
       <li class="page-item disabled">

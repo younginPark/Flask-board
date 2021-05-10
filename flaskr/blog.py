@@ -64,6 +64,11 @@ def pagination():
     
     return page_cnt
 
+@bp.route('/<int:id>/post')
+def show_body(id):
+    post = get_post(id)
+    return render_template('blog/postbody.html', post=post)
+
 
 @bp.route('/create', methods=('GET', 'POST'))
 @login_required

@@ -38,7 +38,6 @@ def login():
         password = request.form['password']
         error = None
         user = db.session.query(Users).filter(Users.username == username).first()
-        print("**** user", user)
         if not user:
             error = 'Incorrect Username or Password'
         else:
