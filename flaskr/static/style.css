@@ -32,3 +32,37 @@ input[type=submit] { align-self: start; min-width: 10em; }
 .page-item{
     text-decoration: none;
 }
+
+#post-idx{
+    padding-left: 5px;
+    text-align: center;
+}
+#post-title{
+    padding-left: 5px;
+    text-align: center;
+}
+#post-author{
+    padding-left: 15px;
+    text-align: center;
+}
+#post-date{
+    padding-left: 15px;
+    text-align: center;
+}
+
+#author-date{
+    float: right;
+    margin: 0.3rem 0;
+}
+
+#edit-btn{
+    float: right;
+}
+
+.content-body{
+    border: 2px solid black;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    width: 920px;
+    height: 400px;
+}

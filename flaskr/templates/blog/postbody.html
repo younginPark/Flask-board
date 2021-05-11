@@ -1,20 +1,22 @@
 {% extends 'base.html' %}
 
 {% block header %}
-    <h1>{% block title %}Show {{post['title']}}{% endblock %}</h1>
+    <h1>{% block title %}{{post['title']}}{% endblock %}</h1>
+    <div id='author-date'>
+        <span>{{post['username']}}</span>
+        <span>/&nbsp{{ post['created'].strftime('%Y-%m-%d') }}</span>
+    </div>
 {% endblock %}
 
 {% block content %}
-    <div>
-        <span>{{post['username']}}</span>
-        <span>{{ post['created'].strftime('%Y-%m-%d') }}</span>
-    </div>
-    <div>
+    <div class='content-body'>
         {{post['body']}}
     </div>
-    <div>
-        <button>
-            <a href="{{ url_for('blog.update', id=post['id']) }}">Edit</a>
-        </button>
-    </div>
+    {% if editable%}
+        <div>
+            <button id='edit-btn'>
+                <a href="{{ url_for('blog.update', id=post['id']) }}">Edit</a>
+            </button>
+        </div>
+    {% endif %}
 {% endblock %}

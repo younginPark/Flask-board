@@ -16,10 +16,12 @@ page_cnt = 0
 @bp.route('/')
 def index():
     global prev_page, next_page
-    page_cnt = pagination()
+    page_now = 0
+    page_cnt, post_cnt = pagination()
     page_num = request.args.get('page_num') # 요구페이지
     if page_num is not None:
         page_num = int(page_num)
+        page_now = page_num
         if page_num == -1: # 이전 눌렀을 때
             if prev_page > 2: # 0보다 큰 상태이므로 이전 페이지 빼 줘야 함
                 next_page = prev_page+1
@@ -49,8 +51,9 @@ def index():
             next_page = (prev_page + 1) + 3
         posts = db.session.query(Posts.id, Posts.title, Posts.body, Posts.created, Posts.author_id, Users.username)\
             .filter(Users.id == Posts.author_id, Posts.deleted == None).order_by(Posts.created.desc()).limit(5).all()
+        page_now = prev_page+1
     posts = [dict(zip(post.keys(), post)) for post in posts]
-    return render_template('blog/index.html', posts=posts, page_cnt=page_cnt, page_start=prev_page+1, page_last=next_page, page_now=page_num)
+    return render_template('blog/index.html', posts=posts, page_cnt=page_cnt, post_cnt=post_cnt, page_start=prev_page+1, page_last=next_page, page_now=page_now)
 
 def pagination():
     global page_cnt
@@ -62,12 +65,16 @@ def pagination():
     else:
         page_cnt = (post_cnt // 5) + 1
     
-    return page_cnt
+    return page_cnt, post_cnt
 
 @bp.route('/<int:id>/post')
 def show_body(id):
     post = get_post(id)
-    return render_template('blog/postbody.html', post=post)
+    editable = False
+    if g.user:
+        if g.user['id'] ==  post['author_id']:
+            editable = True
+    return render_template('blog/postbody.html', post=post, editable=editable)
 
 
 @bp.route('/create', methods=('GET', 'POST'))
@@ -97,8 +104,13 @@ def get_post(id, check_author=True):
     post = dict(zip(post.keys(), post))
     if post is None:
         abort(404, "Post id {0} doesn't exist.".format(id))
-    if check_author and post['author_id'] != g.user['id']:
-        abort(403)
+    # print(id, post['author_id'])
+    # print("**** ", id, ' / ', g.user['id'])
+    # if g.user is not None: # 로그인이 되어 있다는 의미
+    #     if check_author and post['author_id'] != g.user['id']:
+    #         abort(403)
+    #     else:
+    #         return p
 
     return post
 
